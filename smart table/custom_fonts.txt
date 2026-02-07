@@ -1,0 +1,97 @@
+// Simple project using Arduino UNO and 16x2 character display to display BIG DIGITS
+// Created by upir, 2023 – modified to use ONLY the "tron" font
+// Full tutorial: https://youtu.be/SXSujfeN_QI
+// GitHub: https://github.com/upiir/character_display_big_digits
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Set I2C address (0x27 or 0x3F – adjust if your display uses a different one)
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // For most common I2C LCDs
+
+// Global arrays used for big digit rendering
+byte current_font_digits[10][4];
+byte buffer[8];
+
+// ------------------- TRON FONT DEFINITION -------------------
+const byte tron_00[8] PROGMEM = {B11111,B11000,B00000,B00000,B00000,B00000,B00000,B00000};
+const byte tron_01[8] PROGMEM = {B00000,B00000,B00000,B00000,B00000,B00000,B11000,B11111};
+const byte tron_02[8] PROGMEM = {B11111,B00011,B00011,B00011,B00011,B00011,B00011,B00011};
+const byte tron_03[8] PROGMEM = {B11111,B11000,B11000,B11000,B11000,B11000,B11000,B11111};
+const byte tron_04[8] PROGMEM = {B11111,B11000,B11000,B11000,B11000,B11000,B11000,B11000};
+const byte tron_05[8] PROGMEM = {B11000,B11000,B11000,B11000,B11000,B11000,B11000,B11000};
+const byte tron_06[8] PROGMEM = {B11111,B00000,B00000,B00000,B00000,B00000,B00000,B11111};
+const byte tron_07[8] PROGMEM = {B11000,B11000,B11000,B11000,B11000,B11000,B11000,B11111};
+
+byte tron_digits[10][4] = {
+  {4,2,7,255}, {254,5,254,5}, {0,2,3,6}, {0,2,1,255},
+  {7,1,254,5}, {3,6,1,255}, {3,6,3,255}, {0,2,254,5},
+  {3,2,3,255}, {3,2,254,2}
+};
+
+void set_font_tron() {
+  for (int i = 0; i < 10; i++) {
+    for (int j = 0; j < 4; j++) {
+      current_font_digits[i][j] = tron_digits[i][j];
+    }
+  }
+  memcpy_P(buffer, tron_00, 8); lcd.createChar(0, buffer);
+  memcpy_P(buffer, tron_01, 8); lcd.createChar(1, buffer);
+  memcpy_P(buffer, tron_02, 8); lcd.createChar(2, buffer);
+  memcpy_P(buffer, tron_03, 8); lcd.createChar(3, buffer);
+  memcpy_P(buffer, tron_04, 8); lcd.createChar(4, buffer);
+  memcpy_P(buffer, tron_05, 8); lcd.createChar(5, buffer);
+  memcpy_P(buffer, tron_06, 8); lcd.createChar(6, buffer);
+  memcpy_P(buffer, tron_07, 8); lcd.createChar(7, buffer);
+}
+
+// Draws a single big digit (0–9) at (xpos, ypos)
+// Each digit uses 4 custom characters (2x2 cells)
+void draw_big_digit(byte digit, byte xpos, byte ypos) {
+  lcd.setCursor(xpos, ypos);
+  lcd.write(current_font_digits[digit][0]);
+  lcd.write(current_font_digits[digit][1]);
+  lcd.setCursor(xpos, ypos + 1);
+  lcd.write(current_font_digits[digit][2]);
+  lcd.write(current_font_digits[digit][3]);
+}
+
+// ------------------- SETUP -------------------
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  set_font_tron();  // Initialize TRON font
+
+  // Initial welcome screen (optional)
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("TRON FONT");
+  lcd.setCursor(0, 1);
+  lcd.print("DEMO 0-9");
+  delay(2000);
+  lcd.clear();
+  draw_big_digit(1, 0, 0);
+}
+
+// ------------------- LOOP -------------------
+void loop() {
+  // lcd.clear();
+
+  // // Display digits 0 to 4
+  // draw_big_digit(0, 0, 0);
+  // draw_big_digit(1, 3, 0);
+  // draw_big_digit(2, 6, 0);
+  // draw_big_digit(3, 9, 0);
+  // draw_big_digit(4, 12, 0);
+  // delay(2000);
+
+  // lcd.clear();
+
+  // // Display digits 5 to 9
+  // draw_big_digit(5, 0, 0);
+  // draw_big_digit(6, 3, 0);
+  // draw_big_digit(7, 6, 0);
+  // draw_big_digit(8, 9, 0);
+  // draw_big_digit(9, 12, 0);
+  // delay(2000);
+}

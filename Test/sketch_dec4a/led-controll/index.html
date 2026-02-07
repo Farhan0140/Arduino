@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Relay Control</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h2 {
+      color: white;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      margin-bottom: 40px;
+      font-size: 2.2rem;
+      letter-spacing: 1px;
+    }
+    
+    .relay-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 400px;
+    }
+    
+    .relay-btn {
+      width: 220px;
+      padding: 18px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .relay-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .relay-btn:hover::before {
+      opacity: 1;
+    }
+    
+    .relay-btn.off {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      box-shadow: 0 4px 12px rgba(238, 90, 82, 0.4);
+    }
+    
+    .relay-btn.off:hover {
+      background: linear-gradient(135deg, #ff5252, #d32f2f);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(238, 90, 82, 0.6);
+    }
+    
+    .relay-btn:not(.off) {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      box-shadow: 0 4px 12px rgba(0, 242, 254, 0.4);
+    }
+    
+    .relay-btn:not(.off):hover {
+      background: linear-gradient(135deg, #00e5ff, #00b0ff);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0, 242, 254, 0.6);
+    }
+    
+    .relay-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    .status-on {
+      background: #00ff9d;
+      box-shadow: 0 0 8px #00ff9d;
+      animation: pulse 1.5s infinite;
+    }
+    
+    .status-off {
+      background: #ff4757;
+      box-shadow: 0 0 8px #ff4757;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    
+    .relay-btn span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<h2>ESP32 Firebase - 3 Relay Control</h2>
+
+<div class="relay-container">
+  <button id="relay1" class="relay-btn">
+    <span><div class="status-indicator status-on"></div>Relay 1 (ON)</span>
+  </button>
+  <button id="relay2" class="relay-btn off">
+    <span><div class="status-indicator status-off"></div>Relay 2 (OFF)</span>
+  </button>
+  <button id="relay3" class="relay-btn off">
+    <span><div class="status-indicator status-off"></div>Relay 3 (OFF)</span>
+  </button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } 
+          from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjWVtXZggMrPZT8LmkGjuoUy6hT2vrwcM",
+    authDomain: "led-controll-with-esp-32.firebaseapp.com",
+    databaseURL: "https://led-controll-with-esp-32-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "led-controll-with-esp-32",
+    storageBucket: "led-controll-with-esp-32.firebasestorage.app",
+    messagingSenderId: "655269863910",
+    appId: "1:655269863910:web:bd6508fc92e46099597627"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Button references
+  const r1 = document.getElementById("relay1");
+  const r2 = document.getElementById("relay2");
+  const r3 = document.getElementById("relay3");
+
+  // ---- Listen for real-time updates from Firebase ----
+  listen("12", r1);
+  listen("13", r2);
+  listen("14", r3);
+
+  function listen(pin, btn) {
+      onValue(ref(db, "board1/outputs/digital/" + pin), (snapshot) => {
+          const state = snapshot.val();
+
+          if (state === true) {
+              btn.innerHTML = `<span><div class="status-indicator status-on"></div>Relay ${pin} (ON)</span>`;
+              btn.classList.remove("off");
+          } else {
+              btn.innerHTML = `<span><div class="status-indicator status-off"></div>Relay ${pin} (OFF)</span>`;
+              btn.classList.add("off");
+          }
+      });
+  }
+
+  // ---- Toggle function ----
+  function toggle(pin) {
+      const btn = event.target.closest('.relay-btn');
+      const currentState = !btn.classList.contains("off");
+      const newState = !currentState;
+
+      set(ref(db, "board1/outputs/digital/" + pin), newState);
+  }
+
+  // Button click events
+  r1.addEventListener("click", () => toggle("12"));
+  r2.addEventListener("click", () => toggle("13"));
+  r3.addEventListener("click", () => toggle("14"));
+
+</script>
+
+</body>
+</html>
+
